@@ -23,4 +23,39 @@ public class OrderItem {
 
     private int orderPrice; // 주문 가격
     private int count; // 주문 수량
+
+    /* 생성 메소드 */
+
+    /**
+     * 주문상품 생성
+     */
+    public static OrderItem createOrderItem(Item item, int orderPrice, int count) {
+        OrderItem orderItem = new OrderItem();
+        orderItem.setItem(item);
+        orderItem.setOrderPrice(orderPrice);
+        orderItem.setCount(count);
+
+        item.removeStock(count);
+
+        return orderItem;
+    }
+
+    /* 비즈니스 로직 */
+
+    /**
+     * 주문상품 취소
+     */
+    public void cancel() {
+        // 재고 수량 원상복귀하기
+        this.getItem().addStock(count);
+    }
+
+    /* 조회 로직 */
+
+    /**
+     * 주문상품 총 가격
+     */
+    public int getTotalPrice() {
+        return this.getOrderPrice() * this.getCount();
+    }
 }

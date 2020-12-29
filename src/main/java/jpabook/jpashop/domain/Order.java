@@ -54,4 +54,60 @@ public class Order {
         this.delivery = delivery;
         delivery.setOrder(this);
     }
+
+    /*
+    생성 메소드
+    */
+
+    /* Order 엔티티를 생성하는데는 간단히 문자열이나 숫자만 들어가는 것이 아니라, 다른 엔티티들을 매개변수로 넣어주어야 한다.
+    * 이렇게 복잡한 엔티티가 있는 경우에는 보통 엔티티 내부에서 엔티티 생성을 쉽게할 수 있는 메소드를 만들어준다.
+    *
+    * 이런 스타일로 작성하는 것이 중요한 이유는 앞으로 생성에 문제가 생겼을 때, 이 메소드만 보면 해결이 된다. */
+    public static Order createOrder(Member member, Delivery delivery, OrderItem... orderItems) {
+        Order order = new Order();
+        order.setMember(member);
+        order.setDelivery(delivery);
+
+        // 실무에서는 OrderItem이 DTO를 타고 오거나, 이 생성 메소드 내부에서 생성될 수도 있다.
+        // 경우에 따라서는 그게 깔끔할 수도 있으니 참고하자.
+        for (OrderItem orderItem : orderItems) {
+            order.addOrderItem(orderItem);
+        }
+
+        order.setStatus(OrderStatus.ORDER);
+        order.setOrderDate(LocalDateTime.now());
+        return order;
+    }
+
+    /*
+    비즈니스 로직
+    */
+
+    /**
+     * 주문 취소
+     */
+    public void cancel() {
+        if(delivery.getStatus() == DeliveryStatus.COMP) {
+            throw new IllegalStateException("이미 배송완료된 상품은 취소가 불가능합니다.");
+        }
+
+        this.setStatus(OrderStatus.CANCEL);
+
+        /* 내부 멤버 변수라서 따로 `this` 키워드를 적을 필요는 없지만, 그래도 적어준다. */
+        for (OrderItem orderItem: this.orderItems) {
+            orderItem.cancel();
+        }
+    }
+
+    /*
+    조회 로직
+    */
+
+    /**
+     * 전체 주문가격 조회
+     */
+    public int getTotalPrice() {
+        return this.orderItems.stream().mapToInt(OrderItem::getTotalPrice).sum();
+    }
+
 }
