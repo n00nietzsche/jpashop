@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- JSP의 INCLUDE와 같은 개념 -->
+
+<!--
+ thymeleaf.org/doc/articles/layout.html 에 가보면 다양한 레이아웃 방법들을 볼 수 있다.
+
+ layout을 잡는데는 크게 1. `Include-style layouts`와 2. `Hierarchical-style layouts`가 있다.
+
+ 우리가 강의에서 쓰는 html에는 1번 방식인 `Include-style layouts`가 적용되어 있다.
+ `Include-style layouts`에는 코드의 중복이 존재한다는 단점이 있다.
+
+ 공식문서를 보고 2번 `Hierarchical-style layouts`를 적용하면 코드의 중복을 많이 없앨 수 있다.
+ 현재 강의에서 1번 방법을 쓰는 이유는 2번 항목을 사용하려면 설명해야 하는 점이 많아서이다.
+ 이 강의는 화면 중심이 아니므로, 문서를 충분히 읽은다음 적용해보면 된다.
+ -->
+
+<!--
+ 디자인에 필요한 CSS, JS 리소스는 /resources/static/에 넣어준다.
+ 만약 인식이 잘 안되면 `resources` 디렉토리를 마우스 우클릭해서, `Synchronize` 혹은 `Reload from Disk`
+-->
+
+<!--
+ `CTRL + E` 단축키로 내가 최근에 열어보았던 파일들을 확인할 수 있다.
+-->
+<head th:replace="fragments/header :: header">
+    <title>Hello</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+
+<body>
+<div class="container">
+    <div th:replace="fragments/bodyHeader :: bodyHeader" />
+    <div class="jumbotron">
+        <h1>HELLO SHOP</h1>
+        <p class="lead">회원 기능</p>
+        <p>
+            <a class="btn btn-lg btn-secondary" href="/members/new">회원 가입</a>
+            <a class="btn btn-lg btn-secondary" href="/members">회원 목록</a>
+        </p>
+        <p class="lead">상품 기능</p>
+        <p>
+            <a class="btn btn-lg btn-dark" href="/items/new">상품 등록</a>
+            <a class="btn btn-lg btn-dark" href="/items">상품 목록</a>
+        </p>
+        <p class="lead">주문 기능</p>
+        <p>
+            <a class="btn btn-lg btn-info" href="/order">상품 주문</a>
+            <a class="btn btn-lg btn-info" href="/orders">주문 내역</a>
+        </p>
+    </div>
+    <div th:replace="fragments/footer :: footer" />
+</div> <!-- /container -->
+</body>
+</html>
