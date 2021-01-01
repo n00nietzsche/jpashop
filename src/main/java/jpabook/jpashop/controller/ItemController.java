@@ -42,13 +42,57 @@ public class ItemController {
 
     /*
     여기서는 `@PathVariable` 어노테이션을 사용해서 동적 라우팅을 한다.
-    내 생각에 그냥 `?a=1`과 같은 파라미터 넘기기와의 차이점은 아무래도 명확성 같다.
-    동적 라우팅을 이용해서 특정 URL 패턴을 만들어낼 수 있는데, RESTFUL 한 설계를 할 때도 유용하고,
-    굳이 Request 헤더에서 값을 가져오지 않아도 된다는 장점도 있다.
+    `@RequestParam`을 이용해서도 값을 받아올 수 있는데 둘은 방식이 좀 다르다.
+
+    - `@RequestParam`은 쿼리 스트링에서 값을 추출한다. (a.com?foo=1)
+    - `@PathVariable`은 URI 경로에서 값을 추출한다. (a.com/foo/1)
+
+    - `@RequestParam`은 URL Decoded 값을 가져옴
+    - `@PathVariable`은 Encoded 값을 그냥 가져옴
+
+    - 둘 다 (`required = false` 옵션을 통해 필수 값이 아닌 옵션 값으로 설정이 가능함)
      */
     @GetMapping(value = "items/{itemId}/edit")
     public String updateItemForm(@PathVariable("itemId") Long itemId, Model model) {
-        Book item = (Book) itemService.findOne(itemId);
+        /* 사실 이렇게 캐스팅하는 것이 선호되는 패턴은 아니다. */
+        Book book = (Book) itemService.findOne(itemId);
+
+        BookForm form = new BookForm();
+        form.setId(book.getId());
+        form.setName(book.getName());
+        form.setPrice(book.getPrice());
+        form.setStockQuantity(book.getStockQuantity());
+        form.setAuthor(book.getAuthor());
+        form.setIsbn(book.getIsbn());
+
+        model.addAttribute("form", form);
+        /* 일단은 데이터를 뿌려주자. */
+        return "items/updateItemForm";
+    }
+
+    @PostMapping("items/{itemId}/edit")
+    /*
+    ModelAttribute 는 입력을 오브젝트 형태로 받기 위해서 쓰는 어노테이션이다.
+     */
+    public String updateItem(@ModelAttribute("form") BookForm bookForm, @PathVariable("itemId") Long itemId) {
+
+        /*
+        실무에서는 Id에 대한 여러가지 취약점이 존재해서 반드시 주의해야 한다.
+        악의적인 사용자가 Id를 바꾸어 보낼 수 있기 때문에,
+        Service와 같은 뒷단에서 권한체크를 한번 더 해주어야 한다.
+        */
+        Book book = new Book();
+
+        book.setId(bookForm.getId());
+        book.setName(bookForm.getName());
+        book.setPrice(bookForm.getPrice());
+        book.setStockQuantity(bookForm.getStockQuantity());
+        book.setAuthor(bookForm.getAuthor());
+        book.setIsbn(bookForm.getIsbn());
+
+        itemService.saveItem(book);
+
+        return "redirect:/items";
     }
 
 }
