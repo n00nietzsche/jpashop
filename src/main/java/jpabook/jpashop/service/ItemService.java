@@ -1,5 +1,6 @@
 package jpabook.jpashop.service;
 
+import jpabook.jpashop.domain.item.Book;
 import jpabook.jpashop.domain.item.Item;
 import jpabook.jpashop.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,24 @@ public class ItemService {
     @Transactional // 메소드에 가까운 것이 오버라이드된다.
     public void saveItem(Item item) {
         itemRepository.save(item);
+    }
+
+    @Transactional
+    public void updateItem(Long itemId, int price, String name, int stockQuantity) {
+        Item findItem = itemRepository.findOne(itemId);
+        findItem.setPrice(price);
+        findItem.setName(name);
+        findItem.setStockQuantity(stockQuantity);
+    }
+
+    @Transactional
+    public Item mergeItem(Long itemId, Book param) {
+        Item findItem = itemRepository.findOne(itemId);
+        findItem.setPrice(param.getPrice());
+        findItem.setName(param.getName());
+        findItem.setStockQuantity(param.getStockQuantity());
+
+        return findItem;
     }
 
     public List<Item> findItems() {

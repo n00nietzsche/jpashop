@@ -81,6 +81,7 @@ public class ItemController {
         악의적인 사용자가 Id를 바꾸어 보낼 수 있기 때문에,
         Service와 같은 뒷단에서 권한체크를 한번 더 해주어야 한다.
         */
+        /*
         Book book = new Book();
 
         book.setId(bookForm.getId());
@@ -90,7 +91,11 @@ public class ItemController {
         book.setAuthor(bookForm.getAuthor());
         book.setIsbn(bookForm.getIsbn());
 
+
         itemService.saveItem(book);
+        */
+
+        itemService.updateItem(itemId, bookForm.getPrice(), bookForm.getName(), bookForm.getStockQuantity());
 
         return "redirect:/items";
     }

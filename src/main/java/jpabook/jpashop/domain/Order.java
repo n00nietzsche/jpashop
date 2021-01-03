@@ -25,7 +25,7 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     // 1:1 관계에서는 foreign key를 두는 곳을 선택할 수 있음.
     // 그러면 주로 많이 이용하는 테이블에 foreign key를 둠
     // 여기서는 Order가 많이 이용될 것 같으니, (배송 정보로 주문을 찾는 일은 거의 없음)
@@ -87,6 +87,9 @@ public class Order {
      * 주문 취소
      */
     public void cancel() {
+        /*
+        이 부분은 따로 merge 등이 없었어도 잘 수정되어 반영되었었다.
+         */
         if(delivery.getStatus() == DeliveryStatus.COMP) {
             throw new IllegalStateException("이미 배송완료된 상품은 취소가 불가능합니다.");
         }
