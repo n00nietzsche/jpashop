@@ -26,7 +26,7 @@ public class OrderSimpleAPIController {
 
     /*
     무한루프에 빠지게 됨
-    계속 Order 와 Member 가 서로를 참조함
+    계속 Order 와 Member 가 서로를 참조함$
       -> 양방향 연관관계가 있을 때 한 쪽으로는 `@JsonIgnore`를 해주어야 함
         -> 그래도 에러가 남.
           -> 지연로딩이기 때문에 Member 에 대한 데이터는 손을 안댐
