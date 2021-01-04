@@ -46,7 +46,7 @@ public class InitDB {
         private final EntityManager entityManager;
 
         public void dbInit1() {
-            Member member = createMember("서울", "1", "1", "userA");
+            Member member = createMember("userA", "서울", "1", "1");
             entityManager.persist(member);
 
             Book book1 = createBook("JPA1 BOOK", 10000, 100);
@@ -65,7 +65,7 @@ public class InitDB {
         }
 
         public void dbInit2() {
-            Member member = createMember("부산", "1", "1", "userB");
+            Member member = createMember("userB", "부산", "1", "1");
             entityManager.persist(member);
 
             Book book1 = createBook("SPRING1 BOOK", 20000, 200);
