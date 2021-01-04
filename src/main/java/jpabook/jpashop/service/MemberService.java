@@ -51,4 +51,21 @@ public class MemberService {
     public Member findOne(Long memberId) {
         return memberRepository.findOne(memberId);
     }
+
+    /**
+     * 회원 이름 업데이트
+     */
+    @Transactional
+    public void update(Long id, String name) {
+        Member member = memberRepository.findOne(id);
+        // Transaction 이 끝날 때, Dirty Check 에 의해서 변경
+        member.setName(name);
+
+        /*
+        여기에 있는 Member 객체를 반환하게 되면,
+        Command 와 Query 가 구분되지 않음
+
+        해당 원칙을 기준으로 프로그래밍하면 권장하지 않음
+        */
+    }
 }
