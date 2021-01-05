@@ -1,20 +1,16 @@
 package jpabook.jpashop.api;
 
-import jpabook.jpashop.domain.Address;
 import jpabook.jpashop.domain.Order;
-import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
-import lombok.Data;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * xToOne(ManyToOne, OneToOne)
@@ -29,6 +25,7 @@ import java.util.stream.Stream;
 @RestController
 public class OrderSimpleAPIController {
     private final OrderRepository orderRepository;
+    private final OrderSimpleQueryRepository orderSimpleQueryRepository;
 
     /*
     무한루프에 빠지게 됨
@@ -78,9 +75,9 @@ public class OrderSimpleAPIController {
     배열로 시작하는 유연성 낮은 JSON 구조가 들어가게 되므로
     선호되지 않는다.
      */
-    public List<SimpleOrderDto> ordersV2() {
+    public List<OrderSimpleQueryDto> ordersV2() {
         List<Order> orderList = orderRepository.findAllByString(new OrderSearch());
-        return orderList.stream().map(SimpleOrderDto::new).collect(Collectors.toList());
+        return orderList.stream().map(OrderSimpleQueryDto::new).collect(Collectors.toList());
     }
 
     /*
@@ -104,30 +101,6 @@ public class OrderSimpleAPIController {
 
     이후에 이것을 `join fetch` 으로 바꿔주는 것이 좋다.
      */
-    @Data
-    static class SimpleOrderDto {
-        private Long orderId;
-        private String name;
-        private LocalDateTime orderDate;
-        private OrderStatus orderStatus;
-        private Address address;
-
-        public SimpleOrderDto(Order order) {
-            this.orderId = order.getId();
-            /*
-            여기서 멤버의 이름을 가지고 오면서 LAZY 가 초기화됨
-            영속성 컨텍스트가 멤버의 id를 갖고 찾아봐서 없으면 DB 쿼리를 날림
-             */
-            this.name = order.getMember().getName();
-            this.orderDate = order.getOrderDate();
-            this.orderStatus = order.getStatus();
-            /*
-            여기서 멤버의 이름을 가지고 오면서 LAZY 가 초기화됨
-            영속성 컨텍스트가 멤버의 id를 갖고 찾아봐서 없으면 DB 쿼리를 날림
-             */
-            this.address = order.getDelivery().getAddress();
-        }
-    }
 
     /*
     V2 버전과 쿼리가 다르게 날아감
@@ -136,8 +109,13 @@ public class OrderSimpleAPIController {
     (일반적으로 성능 문제는 네트워크에서 병목이 일어나는 경우가 많은데 그런 경우를 해결할 수 있다)
      */
     @GetMapping("/api/v3/simple-orders")
-    public List<SimpleOrderDto> ordersV3() {
+    public List<OrderSimpleQueryDto> ordersV3() {
         List<Order> orderList = orderRepository.findAllWithMemberDelivery();
-        return orderList.stream().map(SimpleOrderDto::new).collect(Collectors.toList());
+        return orderList.stream().map(OrderSimpleQueryDto::new).collect(Collectors.toList());
+    }
+
+    @GetMapping("/api/v4/simple-orders")
+    public List<OrderSimpleQueryDto> ordersV4() {
+        return orderSimpleQueryRepository.findOrderDtos();
     }
 }
