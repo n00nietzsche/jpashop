@@ -21,4 +21,4 @@ logging:
   level:
     org.hibernate:
       SQL: DEBUG
-      type: TRACE
+#      type: TRACE

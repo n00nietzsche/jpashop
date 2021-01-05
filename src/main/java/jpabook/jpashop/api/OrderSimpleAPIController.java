@@ -1,14 +1,20 @@
 package jpabook.jpashop.api;
 
+import jpabook.jpashop.domain.Address;
 import jpabook.jpashop.domain.Order;
+import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * xToOne(ManyToOne, OneToOne)
@@ -66,4 +72,60 @@ public class OrderSimpleAPIController {
     항상 지연 로딩을 기본으로 하고, 성능 최적화가 필요한 경우에는 페치조인을 사용해야 한다! (V3에서 설명)
      */
 
+    @GetMapping("/api/v2/simple-orders")
+    /*
+    기본적으로 List 로 바로 반환하는 것은
+    배열로 시작하는 유연성 낮은 JSON 구조가 들어가게 되므로
+    선호되지 않는다.
+     */
+    public List<SimpleOrderDto> ordersV2() {
+        List<Order> orderList = orderRepository.findAllByString(new OrderSearch());
+        return orderList.stream().map(SimpleOrderDto::new).collect(Collectors.toList());
+    }
+
+    /*
+    이렇게 DTO 를 따로 생성해주면,
+    엔티티의 내용이 바뀌더라도 컴파일 전에 에러를 쉽게 캐치할 수 있다.
+
+    그런데 V2의 문제는 Query 를 너무 많이 날린다는 문제가 있다.
+    처음 Select 로 총 2개의 주문을 가져오게 되는데,
+    각 2개의 주문에 대한 Delivery 와 Member 의 Name 을 가져오기 때문에
+    각각의 주문마다 2개의 쿼리가 더 나가는 것이기 때문에
+    최악의 경우 총 5개의 쿼리가 나간다.
+
+    단, JPA 에서는 영속성 컨텍스트가
+    이미 데이터를 갖고 있는지에 대해서 찔러보기 때문에
+    만일, 모든 주문에서 같은 Member ID를 갖고 있으면, (모든 주문이 같은 멤버에 의해 이뤄졌으면)
+    1번의 조회에서 모든 Member 의 이름이 구해질 수도 있다.
+
+
+    그렇다고 EAGER 방식으로 해도 쿼리가 최적화되진 않는다.
+    더군다나 EAGER 를 쓰면 예측 불가능한 쿼리를 만들어내기도 한다.
+
+    이후에 이것을 `join fetch` 으로 바꿔주는 것이 좋다.
+     */
+    @Data
+    static class SimpleOrderDto {
+        private Long orderId;
+        private String name;
+        private LocalDateTime orderDate;
+        private OrderStatus orderStatus;
+        private Address address;
+
+        public SimpleOrderDto(Order order) {
+            this.orderId = order.getId();
+            /*
+            여기서 멤버의 이름을 가지고 오면서 LAZY 가 초기화됨
+            영속성 컨텍스트가 멤버의 id를 갖고 찾아봐서 없으면 DB 쿼리를 날림
+             */
+            this.name = order.getMember().getName();
+            this.orderDate = order.getOrderDate();
+            this.orderStatus = order.getStatus();
+            /*
+            여기서 멤버의 이름을 가지고 오면서 LAZY 가 초기화됨
+            영속성 컨텍스트가 멤버의 id를 갖고 찾아봐서 없으면 DB 쿼리를 날림
+             */
+            this.address = order.getDelivery().getAddress();
+        }
+    }
 }
