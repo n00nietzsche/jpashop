@@ -128,4 +128,16 @@ public class OrderSimpleAPIController {
             this.address = order.getDelivery().getAddress();
         }
     }
+
+    /*
+    V2 버전과 쿼리가 다르게 날아감
+
+    inner join 을 두번 이용한 쿼리가 날아가서 성능적으로 이득이 많다.
+    (일반적으로 성능 문제는 네트워크에서 병목이 일어나는 경우가 많은데 그런 경우를 해결할 수 있다)
+     */
+    @GetMapping("/api/v3/simple-orders")
+    public List<SimpleOrderDto> ordersV3() {
+        List<Order> orderList = orderRepository.findAllWithMemberDelivery();
+        return orderList.stream().map(SimpleOrderDto::new).collect(Collectors.toList());
+    }
 }

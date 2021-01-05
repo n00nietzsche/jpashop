@@ -151,4 +151,24 @@ public class OrderRepository {
     실무에서는 스프링부트, JPA, SPRING-JPA-DATA, QUERY DSL을 모두 사용하는 것이 좋다.
      */
 
+
+
+
+    /*
+    > 보통은 이렇게 길게 이름을 짓진 않는다.
+
+    LAZY 를 무시하고 값을 다 채워서 가져오는 방식
+    이것을 `fetch join` 이라고 부른다.
+
+    `fetch join`은 100% 이해해야 실무에서 쓸 수 있다.
+     */
+    public List<Order> findAllWithMemberDelivery() {
+        return entityManager.createQuery(
+        "select o from Order o" +
+                " join fetch o.member m" +
+                " join fetch o.delivery d",
+                Order.class
+        ).getResultList();
+    }
+
 }
