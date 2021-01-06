@@ -16,6 +16,7 @@ spring:
 #        show_sql: true
         format_sql: true
         use_sql_comments: true
+        default_batch_fetch_size: 100 # 처음 보는 속성.. 어떻게 해야 이런 속성들을 문서를 통해 알 수 있을까?
 
 logging:
   level:

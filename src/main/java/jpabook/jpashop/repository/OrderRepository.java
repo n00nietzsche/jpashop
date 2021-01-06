@@ -5,6 +5,7 @@ import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
@@ -165,11 +166,29 @@ public class OrderRepository {
      */
     public List<Order> findAllWithMemberDelivery() {
         return entityManager.createQuery(
-        "select o from Order o" +
-                " join fetch o.member m" +
-                " join fetch o.delivery d",
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d",
                 Order.class
         ).getResultList();
+    }
+
+    /*
+    V3.1 추가
+
+    참고로 아래의 메소드는 페이징을 해도 아무런 문제가 없다.
+    `1:N` 관계인 컬렉션을 페치 조인 했을 때 문제가 발생하는 것이지,
+    `x:1` 로 즉, 한 row 로 표현되는 관계는 페치 조인을 해도 페이징이 정상적으로 가능하다.
+     */
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return entityManager.createQuery(
+        "select o from Order o" +
+                " join fetch o.member m" +
+                " join fetch o.delivery d"
+                , Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
     }
 
     /*
