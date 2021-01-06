@@ -172,6 +172,73 @@ public class OrderRepository {
         ).getResultList();
     }
 
+    /*
+    나중에 실무에서는 이렇게 약간이라도 복잡해지는 경우에는
+    스트링으로 작성하기보다 QueryDSL 을 이용하는 편이 좋다.
 
+    아래와 같이 작성하면,
+    데이터베이스 입장에서 Order 와 OrderItem 을 그대로 조인해버려서
+    Order 의 데이터 개수가 OrderItem 만큼 늘어난다.
+
+    Order 의 개수가 OrderItem 만큼 늘어나도,
+    Hibernate 입장에서는 Order 가 늘어난 것인지 알 수 없다.
+    Hibernate 는 그냥 데이터를 받은 그대로 받아들이고,
+    결과적으로 API 출력 JSON 에는 중복된 Order 가 그대로 들어간다.
+    > 중복된 Order 의 경우 Java 의 Reference 참조 값까지 동일하다.
+
+      -> 위와 같은 현상을 해결하려면 `select` 옆에 `distinct` 키워드를 붙여주면 된다.
+         `distinct` 키워드는 실제로 DB의 select 문에 distinct 를 추가해주고,
+         Java 객체에서도 레퍼런스가 같은 객체를 없애준다.
+         하지만, `distinct`를 써도 Java 상에서는 중복이 제거되지만, DB 에서는 안된다.
+         왜냐하면 DB의 `distinct`는 모든 컬럼의 값이 일치해야만 중복 제거를 하기 때문이다.
+           -> 실제로 DB 에서 쿼리를 직접 날려보면 실제로는 4개의 ROW 가 출력되는 것을 볼 수 있다.
+
+     이렇게 쿼리를 `join fetch`로 변경해주면, 이전(쿼리 11번)과는 다르게 쿼리 1번에 처리 가능하다.
+     마이바티스와 같은 환경에서 동일한 기능을 코딩한다고 하면, 일일이 최적화된 쿼리를 작성해주어야 하는데,
+     그와 비교해서 이렇게 JPA 의 join fetch 를 이용하여 처리하는 것은 매우 효율적이다.
+
+     ## 정리
+     - 페치 조인으로 SQL 이 한 번만 실행됨
+     - `distinct`를 사용한 이유는 1대다 조인이 있으므로, 데이터베이스 `ROW`가 증가한다.
+       그 결과 order 엔티티의 조회 수도 증가한다. `JPA`의 `distinct`는 `SQL`에 `distinct`를 추가하고,
+       더해서 같은 엔티티가 조회되면, 애플리케이션에서 중복을 걸러준다.
+       이 예에서 order 가 컬렉션 페치 조인 때문에 중복 조회 되는 것을 막아준다.
+     - 단점으로 **페이징이 불가능하다.** (매우 중요하다.)
+
+     ## 페이징 하면?
+
+     ```
+     .setFirstResult(1)
+     .setMaxResults(100)
+     ```
+
+     위와 같은 메소드들을 추가해줌으로써 페이징을 할 수 있다.
+
+     그런데 막상 페이징을 하면?
+     > `2021-01-06 11:30:09.696  WARN 456436 --- [nio-8080-exec-2] o.h.h.internal.ast.QueryTranslatorImpl   : HHH000104: firstResult/maxResults specified with collection fetch; applying in memory!`
+
+     위와 같은 로그메세지와 함께 페이징이 메모리에서 처리된다.
+     데이터가 몇 건 안될 때는 충분히 메모리에서 처리할 여력이 되지만,
+     많은 데이터가 존재할 때는 join 때문에 불어난 전체 Row 수를 전부 메모리에 올려야 하므로
+     어마무시하게 많은 부하가 걸리게 된다.
+
+     ## 컬렉션 페치 조인은 1개만 사용 가능
+
+     컬렉션 둘 이상에 페치 조인을 사용하면,
+     join 에 의해 늘어나는 과정이 두 번 거쳐지게 된다.
+     이렇게 되면 데이터가 부정합하게 조회될 수 있으므로 주의해야 한다.
+     */
+    public List<Order> findAllWithItem() {
+        return entityManager.createQuery(
+                "select distinct o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d" +
+                        " join fetch o.orderItems oi" +
+                        " join fetch oi.item i"
+                , Order.class)
+                .setFirstResult(1)
+                .setMaxResults(100)
+                .getResultList();
+    }
 
 }
