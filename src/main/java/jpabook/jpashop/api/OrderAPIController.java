@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderFlatDto;
+import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Data;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -57,7 +61,7 @@ public class OrderAPIController {
         return orders
                 .stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @GetMapping("/api/v3/orders")
@@ -67,7 +71,7 @@ public class OrderAPIController {
         return orders
                 .stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
 
@@ -153,7 +157,7 @@ public class OrderAPIController {
         return orders
                 .stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @GetMapping("/api/v4/orders")
@@ -186,9 +190,53 @@ public class OrderAPIController {
         return orderQueryRepository.findAllByDto_optimization();
     }
 
+    /*
+    `OrderFlatDto`로 하면 중복이 생기는데,
+    기존 스펙과 동일하게 출력해주고 싶다면?
+      -> 기존 DTO에 맞춰 다 넣어줌
+
+     ## 정리
+     - 장점은 쿼리 한번에 다 가져온다는 것 밖에 없다.
+     - 쿼리는 한번이지만 조인으로 인해서
+     DB에서 애플리케이션에 전달하는
+     데이터에 중복 데이터가 추가되므로
+     상황에 따라 V5보다 더 느릴 수도 있다.
+     - 애플리케이션에서 추가 작업이 크다.
+     - 페이징 불가능 (Order를 기준으로는 안되고, OrderItem을 기준으로는 된다.)
+
+     **쿼리가 줄어든다고 항상 좋은 것은 아니다.**
+     */
     @GetMapping("/api/v6/orders")
     public List<OrderQueryDto> ordersV6() {
-        return orderQueryRepository.findAllByDto_flat();
+        List<OrderFlatDto> flats = orderQueryRepository.findAllByDto_flat();
+
+        return   flats.stream()
+                .collect(
+                        groupingBy((OrderFlatDto o) ->
+                                        new OrderQueryDto(
+                                                o.getOrderId()
+                                                , o.getName()
+                                                , o.getOrderDate()
+                                                , o.getOrderStatus()
+                                                , o.getAddress())
+                                , mapping((OrderFlatDto o) ->
+                                        new OrderItemQueryDto(
+                                                o.getOrderId()
+                                                , o.getItemName()
+                                                , o.getOrderPrice()
+                                                , o.getCount()
+                                        ), toList())))
+                .entrySet()
+                .stream()
+                .map(e ->
+                        new OrderQueryDto(
+                                e.getKey().getOrderId()
+                                , e.getKey().getName()
+                                , e.getKey().getOrderDate()
+                                , e.getKey().getOrderStatus()
+                                , e.getKey().getAddress()
+                                , e.getValue()))
+                .collect(toList());
     }
 
     @Data
@@ -227,7 +275,7 @@ public class OrderAPIController {
              */
             // order.getOrderItems().stream().forEach(o -> o.getItem().getName());
             // orderItems = order.getOrderItems();
-            orderItems =  order.getOrderItems().stream().map(OrderItemDto::new).collect(Collectors.toList());
+            orderItems =  order.getOrderItems().stream().map(OrderItemDto::new).collect(toList());
 
         }
     }
