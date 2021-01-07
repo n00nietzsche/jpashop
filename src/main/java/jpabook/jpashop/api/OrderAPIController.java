@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderQueryDto;
+import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderAPIController {
     private final OrderRepository orderRepository;
+    private final OrderQueryRepository orderQueryRepository;
 
     @GetMapping("/api/v1/orders")
     public List<Order> ordersV1() {
@@ -127,18 +130,18 @@ public class OrderAPIController {
           따라서 ToOne 관계는 페치조인으로 쿼리 수를 줄여서 해결하고,
           나머지는 `hibernate.default_batch_fetch_size`로 최적화하자.
 
-> 참고: `default_batch_fetch_size` 의 크기는 적당한 사이즈를 골라야 하는데,
-100~1000 사이를 선택하는 것을 권장한다. 이 전략은 SQL IN 절을 사용하는데,
-데이터베이스에 따라 IN 절 파라미터를 1000으로 제한하기도 한다.
-1000으로 잡으면 한번에 1000개를 DB에서 애플리케이션에 불러오므로
-DB에 순간 부하가 증가할 수도 있다.
-하지만 애플리케이션은 100이든 1000이든 결국 전체 데이터를 로딩해야 하므로 메모리 사용량이 같다.
-1000으로 설정하는 것이 성능상 가장 좋지만,
-결국 DB든 애플리케이션이든 순간 부하를 어디까지 견딜 수 있는지로 결정하면 된다.
+        > 참고: `default_batch_fetch_size` 의 크기는 적당한 사이즈를 골라야 하는데,
+        100~1000 사이를 선택하는 것을 권장한다. 이 전략은 SQL IN 절을 사용하는데,
+        데이터베이스에 따라 IN 절 파라미터를 1000으로 제한하기도 한다.
+        1000으로 잡으면 한번에 1000개를 DB에서 애플리케이션에 불러오므로
+        DB에 순간 부하가 증가할 수도 있다.
+        하지만 애플리케이션은 100이든 1000이든 결국 전체 데이터를 로딩해야 하므로 메모리 사용량이 같다.
+        1000으로 설정하는 것이 성능상 가장 좋지만,
+        결국 DB든 애플리케이션이든 순간 부하를 어디까지 견딜 수 있는지로 결정하면 된다.
 
-> 작을수록 Query의 개수가 증가하고, DB의 부하가 줄어들고
-  클수록 Query의 개수가 줄어들고, DB의 부하가 증가한다.
-  CPU와 메모리 양이 크다면 최대한 늘리는 게 빠를 것이다.
+        > 작을수록 Query의 개수가 증가하고, DB의 부하가 줄어들고
+          클수록 Query의 개수가 줄어들고, DB의 부하가 증가한다.
+          CPU와 메모리 양이 크다면 최대한 늘리는 게 빠를 것이다.
          */
     @GetMapping("/api/v3.1/orders")
     public List<OrderDto> ordersV3_page(
@@ -151,6 +154,41 @@ DB에 순간 부하가 증가할 수도 있다.
                 .stream()
                 .map(OrderDto::new)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/api/v4/orders")
+    /*
+    Intellij에서 F2누르면 다음 에러로 빠르게 갈 수 있음
+
+    완전히 DTO를 이용하면? 총 DTO만 3개 필요
+    - Query: 루트 1번, 컬렉션 N번 실행
+    - ToOne(N:1, 1:1) 관계들을 먼저 조회하고,ToMany(1:N) 관계는 각각 별도로 처리한다.
+      - 이런 방식을 선택한 이유는 다음과 같다.
+        - ToOne 관계는 조인해도 데이터 row 수가 증가하지 않는다.
+        - ToMany(1:N) 관계는 조인하면 row 수가 증가한다.
+    - row 수가 증가하지 않는 ToOne 관계는 조인으로 최적화하기 쉬우므로 한번에 조회하고,
+      ToMany 관계는 최적화하기 어려우므로 `findOrderItems()` 같은 별도의 메소드로 조회한다.
+    - 조회는 총 N+1 번이 된다. (각 Order에 대한 OrderItems를 별개로 불러온다.)
+     */
+    public List<OrderQueryDto> ordersV4() {
+            return orderQueryRepository.findOrderQueryDtos();
+    }
+
+
+    /*
+    ## 정리
+    - Query: 루트 1번, 컬렉션 1번
+    - ToOne 관계들을 먼저 조회하고, 여기서 얻은 orderId로 ToMany 관계인 `OrderItem`을 한꺼번에 조회
+    - Map을 사용해서 매칭 성능 향상 (O(1))
+     */
+    @GetMapping("/api/v5/orders")
+    public List<OrderQueryDto> ordersV5() {
+        return orderQueryRepository.findAllByDto_optimization();
+    }
+
+    @GetMapping("/api/v6/orders")
+    public List<OrderQueryDto> ordersV6() {
+        return orderQueryRepository.findAllByDto_flat();
     }
 
     @Data
