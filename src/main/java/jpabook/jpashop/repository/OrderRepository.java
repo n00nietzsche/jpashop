@@ -1,6 +1,11 @@
 package jpabook.jpashop.repository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import jpabook.jpashop.domain.Order;
+import jpabook.jpashop.domain.OrderStatus;
+import jpabook.jpashop.domain.QMember;
+import jpabook.jpashop.domain.QOrder;
 import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -11,10 +16,19 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import java.util.List;
 
+import static jpabook.jpashop.domain.QMember.member;
+import static jpabook.jpashop.domain.QOrder.order;
+
 @Repository
-@RequiredArgsConstructor
 public class OrderRepository {
+
     private final EntityManager entityManager;
+    private final JPAQueryFactory query;
+
+    public OrderRepository(EntityManager entityManager) {
+        this.entityManager = entityManager;
+        query = new JPAQueryFactory(entityManager);
+    }
 
     public void save(Order order) {
         entityManager.persist(order);
@@ -147,6 +161,36 @@ public class OrderRepository {
     /**
      * QueryDSL로 처리
      */
+
+    public List<Order> findAll(OrderSearch orderSearch) {
+        return query
+                .select(order)
+                .from(order)
+                .join(order.member, member)
+                .where(statusEq(orderSearch.getOrderStatus()), nameLike(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
+        /*
+        위의 내용이 JPQL로 바뀌어서 실행됨
+         */
+    }
+
+    private BooleanExpression nameLike(String memberName) {
+
+        if(!StringUtils.hasText(memberName)){
+            return null;
+        }
+
+        return member.name.like(memberName);
+    }
+
+    private BooleanExpression statusEq(OrderStatus statusCondition) {
+        if( statusCondition == null ) {
+            return null;
+        }
+
+        return order.status.eq(statusCondition);
+    }
 
     /*
     동적쿼리, 정적쿼리를 위해서 모두 유용하다.
